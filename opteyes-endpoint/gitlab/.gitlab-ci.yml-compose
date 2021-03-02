@@ -1,0 +1,28 @@
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  
+image: docker/compose:latest
+services:
+  - docker:dind
+stages:
+  - test
+
+step-uat:
+  stage: test
+  before_script:
+    - export DYNAMIC_ENV_VAR=UAT
+    - export DB_DIALECT=mysql
+    - export DB_HOST=mysql
+    - export DB_PORT=3306
+    - export DB_USER=root
+    - export DB_PASSWORD=123456
+    - export DB_NAME=opteyes_production
+    - export JWT_KEY=opteyesjwtkeys!
+    - export TOKEN_EXPIRATION=604800
+    - export BEARER=Bearer
+    - export PORT=3000
+    - export DD_API_KEY=DataDogAPIKey
+    - export NODE_ENV=production
+  script:
+    - docker-compose up

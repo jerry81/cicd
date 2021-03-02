@@ -1,0 +1,75 @@
+version: '3.6'
+
+services:
+  mysql:
+    image: mysql:8.0.23
+    restart: unless-stopped
+    container_name: opt-db
+    # env_file:
+    #  - .env.production
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: opteyes_production
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./compose/mysql/data-production:/var/lib/mysql
+      - ./compose/mysql/config/conf:/etc/mysql/conf.d
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      timeout: 20s
+      retries: 10
+    ports:
+      - '${DB_PORT}:3306'
+
+  redis:
+    image: redis
+    container_name: opt-redis
+    ports:
+      - 6379:6379
+
+  nest-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # restart: unless-stopped
+    working_dir: /app
+    container_name: opt-app
+    environment:
+      - NODE_ENV=production
+    links:
+      - mysql:db
+      - redis
+    depends_on:
+      - mysql
+      - redis
+    ports:
+      - '${PORT}:${PORT}'
+    # env_file:
+    #  - .env.production
+    volumes:
+      - ./logs/:/app/logs
+    command:
+      - sh
+      - -c
+      - |
+        yarn db:migrate
+        yarn test:unit
+
+  # datadog:
+  #  build: compose/datadog
+  #  links:
+  #    - redis
+  #    - nest-app
+  #  container_name: opt-log
+  #  environment:
+  #    - DD_API_KEY=${DD_API_KEY}
+  #    - DD_LOGS_ENABLED=true
+  #    - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+  #    - DD_AC_EXCLUDE="name:datadog-agent"
+  #    - DD_ENV=production
+  #  volumes:
+  #    - /var/run/docker.sock:/var/run/docker.sock
+  #    - /proc/:/host/proc/:ro
+  #    - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+  #    - ./logs:/var/log/backend

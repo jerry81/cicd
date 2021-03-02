@@ -1,0 +1,42 @@
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  MYSQL_ROOT_PASSWORD: 123456
+  MYSQL_DATABASE: opteyes_production
+  
+image: node:14-buster-slim
+services:
+  - mysql:latest
+stages:
+  - test
+cache:
+  paths:
+    - node_modules/
+    - .yarn
+
+step-uat:
+  stage: test
+  before_script:
+    - yarn config set cache-folder .yarn
+    - yarn install
+    - export DYNAMIC_ENV_VAR=UAT
+    - export DB_DIALECT=mysql
+    - export DB_HOST=mysql
+    - export DB_PORT=3306
+    - export DB_USER=root
+    - export DB_PASSWORD=123456
+    - export DB_NAME=opteyes_production
+    - export JWT_KEY=opteyesjwtkeys!
+    - export TOKEN_EXPIRATION=604800
+    - export BEARER=Bearer
+    - export PORT=3000
+    - export DD_API_KEY=DataDogAPIKey
+    - export NODE_ENV=production
+  script:
+    - pwd
+    - ls 
+    - ls /builds/opteyes/endpoint/node_modules/
+    - ls /builds/opteyes/endpoint/node_modules/.bin
+    - yarn db:migrate
+    - yarn test:unit
+
