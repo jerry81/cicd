@@ -1,0 +1,16 @@
+pipeline {
+    node {
+        docker.image('mysql:8.0.23').withRun('-e "MYSQL_ROOT_PASSWORD=123456" -e "MYSQL_DATABASE=opteyes_development" -e "MYSQL_USER=root" -e "MYSQL_PASSWORD: 123456" -v "./data:/var/lib/mysql" -v "./config/conf:/etc/mysql/conf.d"') { c -> 
+          docker.image('mysql:0.0.23').inside("--link ${c.id}:db") {}
+          docker.image('node:14').inside("--link ${c.id}:db") {
+              sh "EXPORT DB_DIALECT=mysql"
+              sh "EXPORT DB_HOST=localhost"
+              sh "EXPORT DB_PORT=33006"
+              sh "EXPORT DB_USER=root"
+              sh "EXPORT DB_PASSWORD=123456"
+              sh "EXPORT DB_NAME=opteyes_development"
+              sh "yarn && yarn test"
+          }
+        }
+    }
+}
